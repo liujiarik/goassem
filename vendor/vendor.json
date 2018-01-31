@@ -1,0 +1,13 @@
+{
+  "comment": "",
+  "ignore": "test",
+  "package": [
+    {
+      "checksumSHA1": "C2Mx5UYupzzyOfii3uCZgL59RDY=",
+      "path": "github.com/pierrre/archivefile/zip",
+      "revision": "e2d100bc74f58ed7d2f41175cd2cf5fe29446399",
+      "revisionTime": "2017-02-18T18:40:37Z"
+    }
+  ],
+  "rootPath": "github.com/liujiarik/goassem"
+}
