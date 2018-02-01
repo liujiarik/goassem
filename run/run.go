@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"bytes"
 	"github.com/pierrre/archivefile/zip"
+	"runtime"
 )
 
 const (
@@ -31,6 +32,7 @@ func Run(w io.Writer, appArgs []string) (string, error) {
 	flags := flag.NewFlagSet("goassem", flag.ContinueOnError)
 	version := flags.Bool("version", false, "show goassem version")
 	licenses := flags.Bool("licenses", false, "show goassem's licenses")
+	helps := flags.Bool("help", false, "show goassem's helps")
 
 	err := flags.Parse(appArgs[1:])
 	if err != nil {
@@ -42,6 +44,9 @@ func Run(w io.Writer, appArgs []string) (string, error) {
 	}
 	if *licenses {
 		return help.VersionMsg, nil
+	}
+	if *helps {
+		return help.HelpFull, nil
 	}
 
 	args := flags.Args()
@@ -78,7 +83,7 @@ func Init(w io.Writer) (string, error) {
 	f.WriteString(string(cb))
 	f.Sync()
 
-	return help.InitMsg, nil
+	return "", nil
 
 }
 func Package(w io.Writer, appArgs []string) (string, error) {
@@ -96,30 +101,39 @@ func Package(w io.Writer, appArgs []string) (string, error) {
 	}
 
 	for i := 0; i < l; i++ {
-		fmt.Fprintln(w, "##start to assem package NO.", i)
+		fmt.Fprintln(w, "==start to assem package NO.", i)
 		af := c[i] // assembly conf
 		af.Print(w)
 
-		pn := GetPackageName(&c[i])
-		k := len(pn)
+		if af.Platforms == nil || len(af.Platforms) == 0 {
+			// no mention of the platform.It use local platform
+			platforms := make([]*conf.Platform, 0)
+			platforms = append(platforms, GetLocalPlatform())
+			af.Platforms = platforms
+		}
+
+		k := len(af.Platforms)
 		for j := 0; j < k; j++ {
-			packageDir := filepath.Join(OUT_PATH, pn[j])    //package dir
-			CheckDirExistsAndCreate(packageDir)             // create package dir
-			binDir := filepath.Join(packageDir, af.BinDir); // bin dir
-			CheckDirExistsAndCreate(binDir)                 // create bin dir
-			if r := goBuild(w, af.BuildArgs, af.Main+".go"); r == nil {
+
+			platform := af.Platforms[j]                                  // platform info
+			packageName := GetPackageName(af.Name, af.Version, platform) // package name
+			packageDir := filepath.Join(OUT_PATH, packageName)           //package dir
+			CheckDirExistsAndCreate(packageDir)                          // create package dir
+			binDir := filepath.Join(packageDir, af.BinDir);              // bin dir
+			CheckDirExistsAndCreate(binDir)                              // create bin dir
+			if r := goBuild(w, af.BuildArgs, af.Main, platform); r == nil {
 				CopyFile(filepath.Join(binDir, af.Main), af.Main)
 			} else {
 				return help.Fail, r
 			}
-			fileSet(w, af.FileSets, packageDir)
+			fileSet(w, af.FileSets, packageDir) // deal fileSets
 			switch af.Format {
 			case "zip":
 				zipFile := packageDir + ".zip"
-				zip.ArchiveFile(packageDir, zipFile, nil)
-				return help.AllDone, nil
+				zip.ArchiveFile(packageDir, zipFile, nil) // ArchiveFile
+				break
 			case "tar.gz":
-				return help.AllDone, nil
+				return af.Format + "is'surport", nil
 			default:
 				return af.Format + "is'surport", nil
 
@@ -139,29 +153,14 @@ func Clear(w io.Writer, appArgs []string) (string, error) {
 
 }
 
-func GetPackageName(ac *conf.AssemblyConf) []string {
+func GetPackageName(name string, version string, p *conf.Platform) string {
 
-	packageNames := make([]string, 0)
-
-	if ac.Platforms == nil || len(ac.Platforms) == 0 {
-		fileItem := make([]string, 0)
-		fileItem = append(fileItem, ac.Name)
-		fileItem = append(fileItem, ac.Version)
-		packageNames = append(packageNames, strings.Join(fileItem, "-"))
-	} else {
-		for i := 0; i < len(ac.Platforms); i++ {
-			fileItem := make([]string, 0)
-			fileItem = append(fileItem, ac.Name)
-			fileItem = append(fileItem, ac.Version)
-			fileItem = append(fileItem, ac.Platforms[i].Os)
-			fileItem = append(fileItem, ac.Platforms[i].Arch)
-			packageNames = append(packageNames, strings.Join(fileItem, "-"))
-		}
-
-	}
-
-	return packageNames
-
+	fileItem := make([]string, 0)
+	fileItem = append(fileItem, name)
+	fileItem = append(fileItem, version)
+	fileItem = append(fileItem, p.Os)
+	fileItem = append(fileItem, p.Arch)
+	return strings.Join(fileItem, "-")
 }
 func fileSet(w io.Writer, fileSets []*conf.FileSet, packageDir string) {
 	l := len(fileSets)
@@ -198,27 +197,54 @@ func CheckFileExistsAndCreate(path string) {
 	}
 }
 
-func execCommand(w io.Writer, commandName string, arg ...string) error {
+func execCommand(w io.Writer, commandName string, env []string, arg ...string) error {
 	cmd := exec.Command(commandName, arg...)
 	fmt.Fprintln(w, cmd.Args)
 	cmd.Stdin = strings.NewReader("some input")
+
+	if env != nil && len(env) > 0 {
+		cmd.Env = append(os.Environ(), env...)
+	}
+
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	err := cmd.Run()
 	if err != nil {
 		return err
 	}
-	fmt.Fprint(w, "exec :%q\n", out.String())
+	fmt.Fprint(w, "exec :\n", out.String())
 
 	return nil
 }
 
-func goBuild(w io.Writer, buildParams []string, goFile string) error {
+func goBuild(w io.Writer, buildParams []string, goFile string, p *conf.Platform) error {
+
+	checkIsLocalEnv(p)
 
 	fmt.Fprintln(w, "start to build...")
 	arg := make([]string, 0)
 	arg = append(arg, "build")
 	arg = append(arg, buildParams...)
 	arg = append(arg, goFile)
-	return execCommand(w, "go", arg...)
+
+	if checkIsLocalEnv(p) {
+		return execCommand(w, "go", nil, arg...)
+	} else {
+		env := append(os.Environ(),
+			"CGO_ENABLED=0",
+			"GOOS="+strings.ToLower(p.Os),
+			"GOARCH="+strings.ToLower(p.Arch),
+		)
+		return execCommand(w, "go", env, arg...)
+	}
+
+}
+
+func GetLocalPlatform() *conf.Platform {
+	return &conf.Platform{runtime.GOARCH, runtime.GOOS}
+}
+
+func checkIsLocalEnv(p *conf.Platform) bool {
+
+	return strings.ToLower(p.Arch) == runtime.GOARCH && strings.ToLower(p.Os) == runtime.GOOS
 }
