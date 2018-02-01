@@ -48,8 +48,8 @@ func (a AssemblyConf) Print(w io.Writer) {
 
 func NewDefaultConf() []*AssemblyConf {
 	a := &AssemblyConf{}
-	a.Format = "tar.gz"
-	a.Main = "main.go"
+	a.Format = "zip"
+	a.Main = "main"
 	a.BinDir = "bin"
 	a.Name = GetProjectName()
 	a.Version = "0.0.0"

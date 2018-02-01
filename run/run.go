@@ -121,8 +121,9 @@ func Package(w io.Writer, appArgs []string) (string, error) {
 			CheckDirExistsAndCreate(packageDir)                          // create package dir
 			binDir := filepath.Join(packageDir, af.BinDir);              // bin dir
 			CheckDirExistsAndCreate(binDir)                              // create bin dir
-			if r := goBuild(w, af.BuildArgs, af.Main, platform); r == nil {
-				CopyFile(filepath.Join(binDir, af.Main), af.Main)
+			if r := goBuild(w, af.BuildArgs, af.Main+".go", platform); r == nil {
+				binName := getBinName(af.Main)
+				CopyFile(filepath.Join(binDir, binName), binName)
 			} else {
 				return help.Fail, r
 			}
@@ -144,6 +145,12 @@ func Package(w io.Writer, appArgs []string) (string, error) {
 
 	return help.AllDone, nil
 
+}
+
+func getBinName(goFile string) string {
+
+	f := strings.Split(goFile, "/")
+	return f[len(f)-1]
 }
 
 func Clear(w io.Writer, appArgs []string) (string, error) {

@@ -1,0 +1,44 @@
+[
+  {
+    "name": "example",
+    "version": "1.0.0",
+    "format": "zip",
+    "main": "test",
+    "binDir": "bin",
+    "buildArgs": [],
+    "fileSets": [
+      {
+        "directory": "./",
+        "outputDirectory": "/doc",
+        "includes": [
+          "README"
+        ]
+      },
+      {
+        "directory": "sh",
+        "outputDirectory": "/",
+        "includes": [
+          "start.sh",
+          "stop.sh"
+        ]
+      },
+      {
+        "directory": "conf",
+        "outputDirectory": "/",
+        "includes": [
+          "work.yaml"
+        ]
+      }
+    ],
+    "platforms": [
+      {
+        "arch": "amd64",
+        "os": "linux"
+      },
+      {
+        "arch": "amd64",
+        "os": "darwin"
+      }
+    ]
+  }
+]
