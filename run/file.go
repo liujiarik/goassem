@@ -3,7 +3,9 @@ package run
 import (
 	"os"
 	"io"
-	"github.com/pierrre/archivefile/zip"
+	"path/filepath"
+	"fmt"
+	"strings"
 )
 
 func FileOrDirIsExists(path string) (bool, error) {
@@ -30,6 +32,41 @@ func CopyFile(dstName, srcName string) (written int64, err error) {
 	return io.Copy(dst, src)
 }
 
-func gzipCompress(inFilePath string, outFilePath string) error {
-	return zip.ArchiveFile(inFilePath, outFilePath, nil)
+func walkFileList(path string, action func(file string) (error)) {
+	err := filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
+		if ( f == nil ) {
+			return err
+		}
+		if f.IsDir() {
+			return nil
+		}
+		return action(f.Name())
+	})
+	if err != nil {
+		fmt.Printf("filepath.Walk() returned %v\n", err)
+	}
+}
+
+func CheckMatch(fileName string, pattern string) bool {
+
+	fileName = strings.TrimSpace(fileName)
+	pattern = strings.TrimSpace(pattern)
+	if pattern == "*" || pattern == fileName {
+		return true;
+	}
+	prefixMatch := strings.HasPrefix(pattern, "*") && strings.HasSuffix(fileName, pattern[1:])
+	suffixMatch := strings.HasSuffix(pattern, "*") && strings.HasPrefix(fileName, pattern[0:len(pattern)-1])
+	if prefixMatch || suffixMatch {
+		return true
+	}
+	return false;
+}
+
+func CheckMatchInFileRegexps(fileName string, patterns []string) bool {
+	for _, p := range patterns {
+		if CheckMatch(fileName, p) {
+			return true
+		}
+	}
+	return false
 }

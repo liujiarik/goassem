@@ -21,7 +21,7 @@ const (
 )
 
 /*
-@author:liujia43
+@author:liujiarik
 @since:2018/1/31
 */
 func Run(w io.Writer, appArgs []string) (string, error) {
@@ -124,6 +124,7 @@ func Package(w io.Writer, appArgs []string) (string, error) {
 			if r := goBuild(w, af.BuildArgs, af.Main+".go", platform); r == nil {
 				binName := getBinName(af.Main)
 				CopyFile(filepath.Join(binDir, binName), binName)
+				os.Remove(binName)
 			} else {
 				return help.Fail, r
 			}
@@ -137,14 +138,10 @@ func Package(w io.Writer, appArgs []string) (string, error) {
 				return af.Format + "is'surport", nil
 			default:
 				return af.Format + "is'surport", nil
-
 			}
 		}
-
 	}
-
 	return help.AllDone, nil
-
 }
 
 func getBinName(goFile string) string {
@@ -173,23 +170,22 @@ func fileSet(w io.Writer, fileSets []*conf.FileSet, packageDir string) {
 	l := len(fileSets)
 	for i := 0; i < l; i++ {
 		fs := fileSets[i]
-		k := len(fs.Includes)
-		for j := 0; j < k; j++ {
-			include := fs.Includes[j]
-			sourceFile := filepath.Join(fs.Directory, include);
-			targetDir := filepath.Join(packageDir, fs.OutputDirectory);
-			CheckDirExistsAndCreate(targetDir)
-			targetFile := filepath.Join(targetDir, include);
-			CheckFileExistsAndCreate(targetFile)
-			_, e := CopyFile(sourceFile, targetFile)
-			if e != nil {
 
-				fmt.Fprintln(w, e.Error())
+		walkFileList(fs.Directory, func(file string) error {
+			if CheckMatchInFileRegexps(file, fs.Includes) {
+				sourceFile := filepath.Join(fs.Directory, file);
+				targetDir := filepath.Join(packageDir, fs.OutputDirectory);
+				CheckDirExistsAndCreate(targetDir)
+				targetFile := filepath.Join(targetDir, file);
+				CheckFileExistsAndCreate(targetFile)
+				_, e := CopyFile(targetFile, sourceFile)
+				if e != nil {
+					fmt.Fprintln(w, e.Error())
+				}
 			}
-
-		}
+			return nil
+		})
 	}
-
 }
 
 func CheckDirExistsAndCreate(path string) {

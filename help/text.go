@@ -17,7 +17,7 @@ Sub-Commands
 	init     Create the "assembly.json" file.
 	package  package all file
 	clear	 clear all file in _out
-	@author liujiarik
+	@author  liujiarik
 `
 var helpConf = `goassem can't load assembly.json.: `
 
