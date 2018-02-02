@@ -89,13 +89,13 @@ The following is a simple assembly.json file :
 
 **fileSets** : A set of file copy command
 
-* ~directory~ ：source directory .the path is relative to project root path. If  directory is the project root directory, please use ". /"
-* ~outputDirectory~:  target directory. The path is relative to package directory
-* ~includes~: A set of file which are need to copy ,and It is a string array. includes parameter support ‘*’  wildcard
+* *directory* ：source directory .the path is relative to project root path. If  directory is the project root directory, please use ". /"
+* *outputDirectory*:  target directory. The path is relative to package directory
+* *includes*: A set of file which are need to copy ,and It is a string array. includes parameter support ‘*’  wildcard
 
 **platforms** :  Cross-compilation support
-* ~arch~ ：target  arch
-* ~os~ :  target  os
+* *arch* ：target  arch
+* *os* :  target  os
 
 ## Package
 ```
