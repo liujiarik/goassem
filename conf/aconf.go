@@ -1,3 +1,6 @@
+/*
+ conf package define the struct object of assembly.json file,and to parse it.
+ */
 package conf
 
 import (
@@ -62,6 +65,7 @@ func NewDefaultConf() []*AssemblyConf {
 	return l
 }
 
+//Load conf file
 func LoadFile(fileName string) ([]AssemblyConf, error) {
 
 	a := make([]AssemblyConf, 0, 100)
@@ -74,8 +78,6 @@ func LoadFile(fileName string) ([]AssemblyConf, error) {
 	if err := json.Unmarshal(data, &a); err != nil {
 		return nil, err
 	}
-	return a, nil
-
 	return a, nil
 }
 

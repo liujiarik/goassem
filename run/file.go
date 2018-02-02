@@ -62,7 +62,7 @@ func CheckMatch(fileName string, pattern string) bool {
 	return false;
 }
 
-func CheckMatchInFileRegexps(fileName string, patterns []string) bool {
+func CheckMatchInFilePattern(fileName string, patterns []string) bool {
 	for _, p := range patterns {
 		if CheckMatch(fileName, p) {
 			return true

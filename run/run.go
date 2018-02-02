@@ -1,9 +1,10 @@
+/*
+	run package  handle user input
+ */
 package run
 
 import (
 	"io"
-	"github.com/liujiarik/goassem/conf"
-	"github.com/liujiarik/goassem/help"
 	"flag"
 	"fmt"
 	"os"
@@ -12,8 +13,12 @@ import (
 	"strings"
 	"os/exec"
 	"bytes"
-	"github.com/pierrre/archivefile/zip"
 	"runtime"
+
+	"github.com/liujiarik/goassem/conf"
+	"github.com/liujiarik/goassem/help"
+
+	"github.com/pierrre/archivefile/zip"
 )
 
 const (
@@ -31,7 +36,6 @@ func Run(w io.Writer, appArgs []string) (string, error) {
 	}
 	flags := flag.NewFlagSet("goassem", flag.ContinueOnError)
 	version := flags.Bool("version", false, "show goassem version")
-	licenses := flags.Bool("licenses", false, "show goassem's licenses")
 	helps := flags.Bool("help", false, "show goassem's helps")
 
 	err := flags.Parse(appArgs[1:])
@@ -40,9 +44,6 @@ func Run(w io.Writer, appArgs []string) (string, error) {
 	}
 
 	if *version {
-		return help.VersionMsg, nil
-	}
-	if *licenses {
 		return help.VersionMsg, nil
 	}
 	if *helps {
@@ -54,11 +55,11 @@ func Run(w io.Writer, appArgs []string) (string, error) {
 	cmd := args[0]
 	switch cmd {
 	case "init":
-		return Init(w)
+		return Init()
 	case "package":
 		return Package(w, appArgs)
 	case "clear":
-		return Clear(w, appArgs)
+		return Clear()
 	default:
 		return help.HelpFull, fmt.Errorf("Unknown command %q", cmd)
 	}
@@ -66,7 +67,7 @@ func Run(w io.Writer, appArgs []string) (string, error) {
 	return "", nil
 }
 
-func Init(w io.Writer) (string, error) {
+func Init() (string, error) {
 
 	// check file exist
 	if _, err := os.Stat(conf.CONF_FILE); err == nil {
@@ -150,13 +151,15 @@ func getBinName(goFile string) string {
 	return f[len(f)-1]
 }
 
-func Clear(w io.Writer, appArgs []string) (string, error) {
+// clear '_out' dir
+func Clear() (string, error) {
 
 	os.RemoveAll(OUT_PATH);
 	return "", nil
 
 }
 
+//packageName : $name-$version-$os-$arch
 func GetPackageName(name string, version string, p *conf.Platform) string {
 
 	fileItem := make([]string, 0)
@@ -166,13 +169,15 @@ func GetPackageName(name string, version string, p *conf.Platform) string {
 	fileItem = append(fileItem, p.Arch)
 	return strings.Join(fileItem, "-")
 }
+
+//copy file by the rule which is defined in 'fileSet' parameter
 func fileSet(w io.Writer, fileSets []*conf.FileSet, packageDir string) {
 	l := len(fileSets)
 	for i := 0; i < l; i++ {
 		fs := fileSets[i]
 
 		walkFileList(fs.Directory, func(file string) error {
-			if CheckMatchInFileRegexps(file, fs.Includes) {
+			if CheckMatchInFilePattern(file, fs.Includes) {
 				sourceFile := filepath.Join(fs.Directory, file);
 				targetDir := filepath.Join(packageDir, fs.OutputDirectory);
 				CheckDirExistsAndCreate(targetDir)
@@ -196,7 +201,7 @@ func CheckDirExistsAndCreate(path string) {
 
 func CheckFileExistsAndCreate(path string) {
 	if ie, _ := FileOrDirIsExists(path); !ie {
-		os.Create(path) // create  dir
+		os.Create(path) // create  file
 	}
 }
 
